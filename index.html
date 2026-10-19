@@ -102,13 +102,6 @@ td.empty { color: var(--ink-2); }
 .flag { color: var(--seal); font-size: 12px; margin-left: 2px; }
 .skip { display: block; font-size: 12px; color: var(--bad); }
 
-/* summary table bars */
-.cellbar { display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 8px; min-width: 112px; }
-.cellbar i { display: block; height: 8px; background: var(--bar); border-radius: 1px; }
-.cellbar .top { font-weight: 600; }
-.cellbar .top::before { content: "▲ "; color: var(--seal); font-size: 10px; }
-td.ours .cellbar i { background: var(--seal); }
-
 /* stage-2 deltas */
 .delta { display: grid; grid-template-columns: 1fr; gap: 6px; }
 .dl { display: grid; grid-template-columns: minmax(130px, 210px) 1fr 70px; align-items: center; gap: 12px; font-size: 14px; }
@@ -126,7 +119,14 @@ td.ours .cellbar i { background: var(--seal); }
 .notes div { display: grid; gap: 6px; align-content: start; }
 .notes h3 { font: 600 15px/1.3 var(--font-body); margin: 0; }
 .notes p { font-size: 14px; color: var(--ink-2); }
-footer { font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 16px; }
+footer { font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 16px; display: grid; gap: 8px; }
+footer p { max-width: none; }
+
+/* published references */
+#published-tables { display: grid; gap: 10px; }
+.ptitle { font: 600 15px/1.3 var(--font-body); margin: 14px 0 0; }
+.ptitle:first-child { margin-top: 0; }
+#published-tables table th:first-child { min-width: 220px; }
 
 @media (max-width: 560px) {
   .dl { grid-template-columns: 1fr 64px; }
@@ -180,6 +180,12 @@ footer { font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--rule)
     <div class="frame tall"><table id="other-table"></table></div>
   </section>
 
+  <section id="published" aria-labelledby="h-published">
+    <h2 id="h-published">Published numbers from other models</h2>
+    <p class="muted small">For context only. Most of these were measured with lm-evaluation-harness log-likelihood or with free generation, where the model never sees the options side by side. A decision model sees every option before choosing, so a higher hüküm number here is not a win. HakemBench human-gold, typed-decisions, XNLI and TrGLUE use the same test sets as ours. On WinoGrande-tr our score is on a 400-question repaired dev subset and on MMLU-Pro-TR on a 1,400-question subset. Accuracy in %; ▲ marks the highest number in each column, ◆ means the set's training split was in that model's training data.</p>
+    <div id="published-tables"></div>
+  </section>
+
   <section id="stage2" aria-labelledby="h-stage2">
     <h2 id="h-stage2">What the NLP stage changed</h2>
     <p>hüküm1nlp starts from hüküm1 and trains one more epoch on 17 Turkish NLP datasets recast as decisions, with 25% replay of the general mix. These are held-out test rows of those datasets (XQuAD-tr was never trained on).</p>
@@ -200,7 +206,10 @@ footer { font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--rule)
     </div>
   </section>
 
-  <footer>Models compared: hüküm1, hüküm1nlp, <a href="https://huggingface.co/mertkayacs/Karar-4B">Karar-4B</a>, <a href="https://huggingface.co/hayriyigit/laya-tr-karar">laya-tr-karar</a>, <a href="https://huggingface.co/ufakai/ufakzeka-karar">ufakzeka-karar</a>, <a href="https://huggingface.co/saturday-labs/karar">saturday-labs/karar</a>. hukum-bench itself is not released.</footer>
+  <footer>
+    <p>Models compared: hüküm1, hüküm1nlp, <a href="https://huggingface.co/mertkayacs/Karar-4B">Karar-4B</a>, <a href="https://huggingface.co/hayriyigit/laya-tr-karar">laya-tr-karar</a>, <a href="https://huggingface.co/ufakai/ufakzeka-karar">ufakzeka-karar</a>, <a href="https://huggingface.co/saturday-labs/karar">saturday-labs/karar</a>. hukum-bench itself is not released.</p>
+    <p>Sources of published numbers: XLM-R (<a href="https://arxiv.org/abs/1911.02116">arXiv 1911.02116</a>), mT5 (<a href="https://arxiv.org/abs/2010.11934">2010.11934</a>), TrGLUE (<a href="https://arxiv.org/abs/2512.22100">2512.22100</a>), Cetvel results, 0-shot lm-eval (<a href="https://huggingface.co/spaces/KUIS-AI/Cetvel">KUIS-AI/Cetvel</a>, <a href="https://arxiv.org/abs/2508.16431">2508.16431</a>), the TR-MMLU leaderboard (alibayram/yapay_zeka_turkce_mmlu_liderlik_tablosu), the Global PIQA results CSV (mrlbenchmarks/global-piqa), TurBLiMP (<a href="https://arxiv.org/abs/2506.13487">2506.13487</a>), INCLUDE (<a href="https://arxiv.org/abs/2411.19799">2411.19799</a>), the <a href="https://huggingface.co/datasets/ufakai/HakemBench">HakemBench</a> board (27.09.2026), the LocalLLaMA/typed-decisions card, the bezir/MMLU-pro-TR card and the WiroAI Turkish LLM 8B / 9B cards (lm-eval, winogrande_tr v0.2).</p>
+  </footer>
 </main>
 
 <script>
@@ -289,10 +298,65 @@ function summary() {
   let s = `<caption class="sr">Mean accuracy of each model on four benchmark groups</caption>` + head("Benchmark") + "<tbody>";
   for (const [name, sub, f] of cols) {
     const vs = MODELS.map(([m]) => f(m)), top = Math.max(...vs.filter(x => x != null));
-    s += `<tr><th scope="row">${name}<small>${sub}</small></th>${vs.map((v, i) =>
-      `<td${MODELS[i][3] ? ' class="ours"' : ""}><div class="cellbar"><span${v === top ? ' class="top"' : ""}>${fmt(v)}</span><i style="width:${v ?? 0}%" aria-hidden="true"></i></div></td>`).join("")}</tr>`;
+    s += `<tr><th scope="row">${name}<small>${sub}</small></th>${vs.map((v, i) => cell(v, top, MODELS[i][3])).join("")}</tr>`;
   }
   document.getElementById("summary-table").innerHTML = s + "</tbody>";
+}
+
+// One matrix per group: rows are models, columns are the group's benchmarks. [model, source / protocol, {set: accuracy}]
+const PUB = [
+  { title: "HakemBench and decision sets", sets: [["hakem_insan", "HakemBench", "human-gold"], ["typed_en", "typed-decisions", "English"]], rows: [
+    ["DeepSeek V4 Pro", "general LLM", { hakem_insan: 70.4 }], ["GLM 5.3", "general LLM", { hakem_insan: 70.0 }], ["GPT-5.6 Sol", "general LLM", { hakem_insan: 69.6 }],
+    ["kev-4b · kev-9b", "decision models", { hakem_insan: 67.3 }], ["Jev 1.13", "decision model, zero-shot", { hakem_insan: 66.5, typed_en: 72.7 }],
+    ["Qwen3.5-4B", "general LLM", { hakem_insan: 66.5 }], ["Gemini 3.8 Flash", "general LLM", { hakem_insan: 66.2 }], ["decider-2b", "decision model", { hakem_insan: 55.8 }],
+    ["Darwin-27B-ZTC-v5", "full fine-tune", { typed_en: 81.2 }], ["ministral3-3b-reasoning", "full fine-tune", { typed_en: 80.8 }], ["Amos 1 large", "decision model", { typed_en: 80.3 }],
+    ["OpenDecider-large-td", "80B-A3B + LoRA", { typed_en: 80.1 }], ["od1-typed-decisions", "Qwen3.5-4B fine-tune", { typed_en: 79.7 }],
+    ["Qwen3.5-4B + LoRA + Clef", "same recipe as hüküm1", { typed_en: 77.3 }], ["meraGPT Decider 1", "zero-shot", { typed_en: 76.8 }]] },
+  { title: "NLI", sets: [["xnli_tr_full", "XNLI-tr"], ["trglue_mnli_m", "MNLI-m"], ["trglue_mnli_mm", "MNLI-mm"], ["trglue_rte", "RTE"]], rows: [
+    ["mT5-XXL 13B", "zero-shot", { xnli_tr_full: 83.8 }], ["XLM-R large", "translate-train-all", { xnli_tr_full: 83.2 }], ["XLM-R large", "zero-shot", { xnli_tr_full: 79.6 }],
+    ["BERTurk", "fine-tuned on TrGLUE train", { trglue_mnli_m: 87.9, trglue_mnli_mm: 90.8, trglue_rte: 92.2 }]] },
+  { title: "Commonsense and procedural", sets: [["xcopa_tr", "XCOPA-tr"], ["winogrande_tr", "WinoGrande-tr"], ["global_piqa_nonparallel", "Global PIQA", "2 options"], ["global_piqa_parallel", "Global PIQA", "4 options"],
+    ["plu_goal_inference", "PLU", "goal"], ["plu_next_event", "PLU", "next event"], ["plu_step_inference", "PLU", "step"], ["plu_step_ordering", "PLU", "ordering"]], rows: [
+    ["Llama-3.3-70B-It", "Cetvel lm-eval", { xcopa_tr: 65.0, plu_goal_inference: 49.1, plu_next_event: 58.0, plu_step_inference: 39.1, plu_step_ordering: 65.1 }],
+    ["Qwen2.5-14B-It", "Cetvel lm-eval", { xcopa_tr: 66.6 }],
+    ["Llama-3.1-8B-It", "Cetvel lm-eval; PIQA by generation", { xcopa_tr: 60.8, global_piqa_nonparallel: 64, plu_goal_inference: 40.9, plu_next_event: 44.6, plu_step_inference: 34.3, plu_step_ordering: 65.7 }],
+    ["Qwen3-14B", "generation", { global_piqa_nonparallel: 86 }], ["gemma-3-12b-it", "generation", { global_piqa_parallel: 64.1 }],
+    ["gemma-3-4b-it", "generation", { global_piqa_nonparallel: 82, global_piqa_parallel: 44.7 }], ["Qwen3-4B", "generation", { global_piqa_parallel: 73.8 }],
+    ["WiroAI Turkish LLM 9B", "lm-eval, v0.2 test", { winogrande_tr: 60.6 }], ["aya-expanse-8b", "lm-eval, v0.2 test", { winogrande_tr: 59.2 }],
+    ["OrpoGemma-2-9B-TR", "lm-eval, v0.2 test", { winogrande_tr: 58.9 }], ["Turkish-Llama-8b-DPO (YTÜ)", "lm-eval, v0.2 test", { winogrande_tr: 58.0 }],
+    ["Defne-llama3.1-8B", "lm-eval, v0.2 test", { winogrande_tr: 57.5 }], ["Meta-Llama-3-8B-Instruct", "lm-eval, v0.2 test", { winogrande_tr: 56.7 }],
+    ["Gemma-2-9B-it", "lm-eval, v0.2 test", { winogrande_tr: 56.2 }]] },
+  { title: "Knowledge", sets: [["tr_mmlu", "TR-MMLU"], ["turkishmmlu", "TurkishMMLU"], ["include_tr", "INCLUDE-tr"], ["exams_tr", "EXAMS-tr"], ["mmlu_pro_tr", "MMLU-Pro-TR"]], rows: [
+    ["GPT-4o", "TR-MMLU board; INCLUDE 5-shot", { tr_mmlu: 84.8, include_tr: 65.3 }], ["Gemma-3 12B", "generation", { tr_mmlu: 70.7 }], ["Qwen3 8B", "generation", { tr_mmlu: 67.6 }],
+    ["Qwen2.5 7.6B", "generation", { tr_mmlu: 61.7 }], ["Llama-3.3-70B-It", "Cetvel lm-eval", { turkishmmlu: 64.6, exams_tr: 39.2 }],
+    ["Qwen2.5-7B-It", "Cetvel lm-eval", { turkishmmlu: 47.6 }], ["Llama-3.1-8B-It", "Cetvel lm-eval", { turkishmmlu: 38.1, exams_tr: 32.3 }],
+    ["LLaMA-3-8B-Instruct-TR-DPO", "full set, generation", { mmlu_pro_tr: 27.0 }], ["Turkish-Llama-8b-Instruct (YTÜ)", "full set, generation", { mmlu_pro_tr: 23.9 }],
+    ["VeriUS-LLM-8b", "full set, generation", { mmlu_pro_tr: 23.2 }], ["Orbita-v0.1", "full set, generation", { mmlu_pro_tr: 23.0 }],
+    ["Kocdigital-LLM-8b", "full set, generation", { mmlu_pro_tr: 21.8 }], ["Meta-Llama-3-8B-Instruct", "full set, generation", { mmlu_pro_tr: 20.9 }],
+    ["Trendyol-LLM-7b-chat", "full set, generation", { mmlu_pro_tr: 18.2 }], ["Turkcell-LLM-7b", "full set, generation", { mmlu_pro_tr: 17.2 }]] },
+  { title: "Language", sets: [["turblimp", "TurBLiMP"], ["toksuite_tr", "TokSuite-tr"], ["bilmecebench", "BilmeceBench"], ["circumflex_tr", "Circumflex"]], rows: [
+    ["BERTurk", "", { turblimp: 93.7 }], ["Gemma 3 4B", "sentence log-likelihood", { turblimp: 91.7 }], ["Qwen 2.5 7B", "sentence log-likelihood", { turblimp: 87.0 }],
+    ["~1B tokenizer models", "clean questions only", { toksuite_tr: 76 }], ["Llama-3.3-70B-It", "Cetvel lm-eval", { bilmecebench: 72.6, circumflex_tr: 67.1 }],
+    ["Qwen2.5-14B-It", "Cetvel lm-eval", { bilmecebench: 57.0 }], ["Llama-3.1-8B-It", "Cetvel lm-eval", { bilmecebench: 41.6, circumflex_tr: 64.3 }]] },
+  { title: "Classification", sets: [["news_cat", "News category"], ["trclaim_relevance", "TrClaim", "relevance"], ["trclaim_check_worthiness", "TrClaim", "check-worthiness"]], rows: [
+    ["aya-expanse-32b", "Cetvel lm-eval", { news_cat: 82.8 }], ["Qwen2.5-14B-It", "Cetvel lm-eval", { trclaim_relevance: 74.6 }],
+    ["Llama-3.3-70B-It", "Cetvel lm-eval", { trclaim_check_worthiness: 45.5 }], ["Llama-3.1-8B-It", "Cetvel lm-eval", { news_cat: 66.0, trclaim_relevance: 46.5, trclaim_check_worthiness: 37.6 }]] },
+];
+const OWN = { winogrande_tr: { h1: 59.3, h1nlp: 63.5 } }; // 400-question repaired dev subset, not in DATA
+const PUB_FLAGS = { h1nlp: ["winogrande_tr"] }; // WinoGrande-tr train split was in the NLP stage
+
+function published() {
+  document.getElementById("published-tables").innerHTML = PUB.map(({ title, sets, rows }) => {
+    const ours = MODELS.filter(m => m[3]).map(([m, n, sub]) => [n, sub, Object.fromEntries(sets.map(([s]) => [s, OWN[s] ? OWN[s][m] : val(s, m, 0)])), m]);
+    const top = Object.fromEntries(sets.map(([s]) => [s, Math.max(...[...ours, ...rows].map(r => r[2][s]).filter(v => v != null))]));
+    const row = ([name, sub, vals, m]) => `<tr><th scope="row"${m ? ' class="ours"' : ""}>${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}</th>${sets.map(([s]) => {
+      const v = vals[s], flag = m && [...(FLAGS[m] || []), ...(PUB_FLAGS[m] || [])].includes(s) ? '<span class="flag" aria-hidden="true">◆</span><span class="sr">, trained on this set</span>' : "";
+      return `<td class="${[m ? "ours" : "", v == null ? "empty" : "", v != null && v === top[s] ? "best" : ""].filter(Boolean).join(" ")}">${v == null ? "" : fmt(v)}${flag}</td>`;
+    }).join("")}</tr>`;
+    return `<h3 class="ptitle">${esc(title)}</h3><div class="frame"><table><caption class="sr">${esc(title)}: hüküm accuracy and published results of other models</caption>
+      <thead><tr><th scope="col">Model</th>${sets.map(([, a, b]) => `<th scope="col">${esc(a)}${b ? `<small>${esc(b)}</small>` : ""}</th>`).join("")}</tr></thead>
+      <tbody>${ours.map(row).join("")}${rows.map(row).join("")}</tbody></table></div>`;
+  }).join("");
 }
 
 function deltas() {
@@ -315,7 +379,7 @@ document.querySelectorAll(".switch button").forEach(b => b.addEventListener("cli
   try { localStorage.setItem("hukum-metric", String(METRIC)); } catch (e) {}
   render();
 }));
-summary(); deltas(); render();
+summary(); published(); deltas(); render();
 </script>
 </body>
 </html>
